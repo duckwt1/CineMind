@@ -38,12 +38,18 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    ...Ionicons.font,
-  });
+  const [fontsLoaded] = useFonts(
+    Platform.OS !== 'web'
+      ? {
+          ...Ionicons.font,
+        }
+      : {}
+  );
 
   useEffect(() => {
-    Ionicons.loadFont().catch(() => {});
+    if (Platform.OS !== 'web') {
+      Ionicons.loadFont().catch(() => {});
+    }
   }, []);
 
   return (

@@ -7,7 +7,7 @@
     "android": "expo start --android --offline",
     "ios": "expo start --ios --offline",
     "web": "expo start --web --offline",
-    "build:web": "expo export --platform web",
+    "build:web": "expo export --platform web && node scripts/fix-cloudflare.js",
     "deploy": "npm run build:web && npx wrangler pages deploy dist --project-name cinemind",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
   },

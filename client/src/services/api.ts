@@ -12,7 +12,11 @@ import {
   ViewingStatsResponse,
 } from '../types';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://cinemind-api-vrk1.onrender.com/api/v1';
+
+if (typeof window !== 'undefined') {
+  console.log('[CineMind API] Active backend URL:', API_BASE_URL);
+}
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
