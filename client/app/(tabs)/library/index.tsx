@@ -72,31 +72,6 @@ export default function LibraryScreen() {
     await checkAuthAndLoad();
   };
 
-  const handleQuickLogin = async () => {
-    try {
-      setLoading(true);
-      await api.login({ identifier: 'test_user', password: 'password123' });
-      setIsAuthenticated(true);
-      showAlert({
-        title: 'Đăng nhập thành công',
-        message: 'Đã đăng nhập bằng tài khoản mẫu test_user. Đang đồng bộ thư viện!',
-        type: 'success',
-      });
-      await loadLibrary(selectedStatus);
-    } catch (err: any) {
-      const isNetwork = !err.response || err.code === 'ERR_NETWORK';
-      showAlert({
-        title: isNetwork ? 'Mất kết nối máy chủ' : 'Lỗi đăng nhập',
-        message: isNetwork
-          ? 'Không thể kết nối đến máy chủ CineMind Backend. Vui lòng kiểm tra lại mạng.'
-          : err.response?.data?.error?.message || 'Đăng nhập nhanh thất bại.',
-        type: 'error',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const renderEntry = ({ item }: { item: LibraryEntry }) => (
     <TouchableOpacity
       style={styles.card}
@@ -208,12 +183,6 @@ export default function LibraryScreen() {
               onPress={() => router.push('/(auth)/login')}
             >
               <Text style={styles.guestLoginBtnText}>Sign In</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.guestQuickBtn}
-              onPress={handleQuickLogin}
-            >
-              <Text style={styles.guestQuickBtnText}>⚡ Quick Login as Test User</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -348,19 +317,6 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
     fontSize: 12,
     fontWeight: '700',
-  },
-  guestQuickBtn: {
-    backgroundColor: colors.bgElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  guestQuickBtnText: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    fontWeight: '600',
   },
   listContent: {
     padding: 16,

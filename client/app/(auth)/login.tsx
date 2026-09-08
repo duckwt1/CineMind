@@ -122,31 +122,6 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
-          {/* Quick Demo Login Buttons for Instant Testing */}
-          <View style={styles.quickLoginSection}>
-            <Text style={styles.quickLoginTitle}>— Quick Dev Test Accounts —</Text>
-            <View style={styles.quickLoginRow}>
-              <TouchableOpacity
-                style={styles.quickLoginBtn}
-                onPress={() => {
-                  setIdentifier('test_user');
-                  setPassword('password123');
-                }}
-              >
-                <Text style={styles.quickLoginBtnText}>👤 test_user</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickLoginBtn}
-                onPress={() => {
-                  setIdentifier('ethan_cine');
-                  setPassword('password123');
-                }}
-              >
-                <Text style={styles.quickLoginBtnText}>🎬 ethan_cine</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
           {/* Switch to Register */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>New to CineMind? </Text>
@@ -274,38 +249,5 @@ const styles = StyleSheet.create({
     color: colors.accentGold,
     fontSize: 14,
     fontWeight: '700',
-  },
-  quickLoginSection: {
-    marginTop: 18,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    alignItems: 'center',
-  },
-  quickLoginTitle: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  quickLoginRow: {
-    flexDirection: 'row',
-    gap: 8,
-    width: '100%',
-  },
-  quickLoginBtn: {
-    flex: 1,
-    backgroundColor: colors.bgElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderRadius: 8,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  quickLoginBtnText: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: '600',
   },
 });

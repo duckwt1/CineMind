@@ -101,31 +101,6 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleQuickLogin = async (identifier: string) => {
-    try {
-      setLoading(true);
-      const data = await api.login({ identifier, password: 'password123' });
-      setUser(data.user);
-      showAlert({
-        title: 'Đăng nhập thành công',
-        message: `Chào mừng @${data.user.username} quay trở lại CineMind!`,
-        type: 'success',
-      });
-      loadExtraData();
-    } catch (err: any) {
-      const isNetworkError = !err.response || err.code === 'ERR_NETWORK';
-      showAlert({
-        title: isNetworkError ? 'Mất kết nối máy chủ' : 'Lỗi đăng nhập',
-        message: isNetworkError
-          ? 'Không thể kết nối tới máy chủ CineMind Backend.'
-          : err.response?.data?.error?.message || 'Đăng nhập không thành công',
-        type: 'error',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSignOut = () => {
     showAlert({
       title: 'Đăng xuất',
@@ -741,23 +716,6 @@ export default function ProfileScreen() {
             >
               <Text style={styles.registerButtonText}>Tạo tài khoản mới</Text>
             </TouchableOpacity>
-
-            {/* Dev Test Quick Buttons */}
-            <View style={styles.devQuickSection}>
-              <Text style={styles.devQuickTitle}>— Đăng nhập nhanh thử nghiệm (Backend) —</Text>
-              <TouchableOpacity
-                style={styles.devQuickBtn}
-                onPress={() => handleQuickLogin('test_user')}
-              >
-                <Text style={styles.devQuickBtnText}>⚡ 1-Chạm: Đăng nhập "test_user"</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.devQuickBtn}
-                onPress={() => handleQuickLogin('vietpedro')}
-              >
-                <Text style={styles.devQuickBtnText}>⚡ 1-Chạm: Đăng nhập "vietpedro"</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         )}
       </ScrollView>
@@ -1393,32 +1351,6 @@ const styles = StyleSheet.create({
   registerButtonText: {
     color: colors.textPrimary,
     fontSize: 14,
-    fontWeight: '600',
-  },
-  devQuickSection: {
-    marginTop: 32,
-    width: '100%',
-    alignItems: 'center',
-  },
-  devQuickTitle: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  devQuickBtn: {
-    width: '100%',
-    backgroundColor: colors.bgElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  devQuickBtnText: {
-    color: colors.accentGold,
-    fontSize: 12,
     fontWeight: '600',
   },
 });
