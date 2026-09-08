@@ -1,0 +1,41 @@
+server:
+  port: ${PORT:${SERVER_PORT:8080}}
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: cinemind-server
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:cinemind}}
+    username: ${DB_USER:cinemind_user}
+    password: ${DB_PASSWORD:cinemind_password}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+# Application-specific properties
+cinemind:
+  jwt:
+    secret: ${JWT_SECRET:cinemind_super_secret_jwt_key_must_be_at_least_256_bits_long_for_hmac_sha256!}
+    expiration-ms: ${JWT_EXPIRATION_MS:604800000} # 7 days
+  tmdb:
+    api-key: ${TMDB_API_KEY:}
+    base-url: ${TMDB_BASE_URL:https://api.themoviedb.org/3}
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    base-url: ${GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta}
+  cors:
+    allowed-origins: "*"
