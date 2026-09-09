@@ -35,13 +35,9 @@ export default function ExploreScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const searchSeqRef = React.useRef(0);
-  const debounceTimerRef = React.useRef<any>(null);
 
   useEffect(() => {
     loadTrending(1, false);
-    return () => {
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    };
   }, []);
 
   const loadTrending = async (targetPage = 1, showErrorAlert = false) => {
@@ -155,34 +151,33 @@ export default function ExploreScreen() {
     }
   };
 
-  const handleSearch = (text: string) => {
+  const handleInputChange = (text: string) => {
     setSearchQuery(text);
-    setPage(1);
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    if (!text.trim()) {
+    if (!text.trim() && movies.length === 0) {
+      // If user cleared text and list is empty, reload trending
       searchSeqRef.current++;
-      setLoading(false);
+      setPage(1);
       loadTrending(1);
-      return;
     }
+  };
 
-    // 350ms debounce to prevent firing requests on every keystroke
-    debounceTimerRef.current = setTimeout(() => {
-      executeSearch(text, isSemanticMode, 1);
-    }, 350);
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setPage(1);
+    searchSeqRef.current++;
+    setLoading(false);
+    loadTrending(1);
+  };
+
+  const handleTriggerSearch = (mode = isSemanticMode) => {
+    setPage(1);
+    executeSearch(searchQuery, mode, 1);
   };
 
   const toggleSearchMode = () => {
     const newMode = !isSemanticMode;
     setIsSemanticMode(newMode);
     setPage(1);
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
     if (searchQuery.trim()) {
       executeSearch(searchQuery, newMode, 1);
     }
@@ -272,13 +267,33 @@ export default function ExploreScreen() {
           }
           placeholderTextColor={colors.textMuted}
           value={searchQuery}
-          onChangeText={handleSearch}
+          onChangeText={handleInputChange}
+          onSubmitEditing={() => handleTriggerSearch()}
+          returnKeyType="search"
+          autoCorrect={false}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => handleSearch('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity
+            onPress={handleClearSearch}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.clearBtn}
+          >
             <Ionicons name="close-circle" size={18} color={colors.textMuted} />
           </TouchableOpacity>
         )}
+        <TouchableOpacity
+          style={[styles.searchSubmitBtn, isSemanticMode && styles.searchSubmitBtnAi]}
+          onPress={() => handleTriggerSearch()}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name={isSemanticMode ? "sparkles" : "arrow-forward"}
+            size={14}
+            color={colors.textInverse}
+            style={{ marginRight: 4 }}
+          />
+          <Text style={styles.searchSubmitBtnText}>Tìm</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Mode Selector Pill (Keyword vs AI Semantic) */}
@@ -433,6 +448,28 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.textPrimary,
     fontSize: 14,
+    paddingRight: 6,
+  },
+  clearBtn: {
+    padding: 4,
+    marginRight: 6,
+  },
+  searchSubmitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accentGold,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  searchSubmitBtnAi: {
+    backgroundColor: colors.aiPurple,
+  },
+  searchSubmitBtnText: {
+    color: colors.textInverse,
+    fontSize: 13,
+    fontWeight: '700',
   },
   sectionHeader: {
     flexDirection: 'row',
