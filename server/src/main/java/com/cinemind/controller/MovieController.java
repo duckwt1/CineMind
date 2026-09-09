@@ -17,8 +17,11 @@ public class MovieController {
     private final MovieService movieService;
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<MovieDto>>> searchMovies(@RequestParam("q") String query) {
-        List<MovieDto> results = movieService.searchMovies(query);
+    public ResponseEntity<ApiResponse<List<MovieDto>>> searchMovies(
+            @RequestParam("q") String query,
+            @RequestParam(value = "page", defaultValue = "1") int page
+    ) {
+        List<MovieDto> results = movieService.searchMovies(query, page);
         return ResponseEntity.ok(ApiResponse.of(results));
     }
 
@@ -32,14 +35,18 @@ public class MovieController {
     }
 
     @GetMapping("/trending")
-    public ResponseEntity<ApiResponse<List<MovieDto>>> getTrending() {
-        List<MovieDto> results = movieService.getTrending();
+    public ResponseEntity<ApiResponse<List<MovieDto>>> getTrending(
+            @RequestParam(value = "page", defaultValue = "1") int page
+    ) {
+        List<MovieDto> results = movieService.getTrending(page);
         return ResponseEntity.ok(ApiResponse.of(results));
     }
 
     @GetMapping("/popular")
-    public ResponseEntity<ApiResponse<List<MovieDto>>> getPopular() {
-        List<MovieDto> results = movieService.getPopular();
+    public ResponseEntity<ApiResponse<List<MovieDto>>> getPopular(
+            @RequestParam(value = "page", defaultValue = "1") int page
+    ) {
+        List<MovieDto> results = movieService.getPopular(page);
         return ResponseEntity.ok(ApiResponse.of(results));
     }
 

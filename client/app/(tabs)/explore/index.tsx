@@ -30,18 +30,43 @@ export default function ExploreScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const searchSeqRef = React.useRef(0);
+  const debounceTimerRef = React.useRef<any>(null);
+
   useEffect(() => {
-    loadTrending();
+    loadTrending(1, false);
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
   }, []);
 
-  const loadTrending = async (showErrorAlert = false) => {
+  const loadTrending = async (targetPage = 1, showErrorAlert = false) => {
     try {
-      setLoading(true);
-      const data = await api.getTrending();
-      setMovies(data || []);
+      if (targetPage === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+      const data = await api.getTrending(targetPage);
+      const newItems = data || [];
+      if (targetPage === 1) {
+        setMovies(newItems);
+      } else {
+        // Append unique movies
+        setMovies((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          return [...prev, ...newItems.filter((m) => !existingIds.has(m.id))];
+        });
+      }
+      setHasMore(newItems.length >= 10);
+      setPage(targetPage);
     } catch (e: any) {
       console.error(e);
-      setMovies([]);
+      if (targetPage === 1) setMovies([]);
       if (showErrorAlert) {
         const isNetwork = !e.response || e.code === 'ERR_NETWORK';
         showAlert({
@@ -55,29 +80,66 @@ export default function ExploreScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadTrending(true);
+    setPage(1);
+    if (searchQuery.trim()) {
+      await executeSearch(searchQuery, isSemanticMode, 1);
+    } else {
+      await loadTrending(1, true);
+    }
   };
 
-  const executeSearch = async (text: string, semantic: boolean) => {
-    if (!text.trim()) {
-      loadTrending();
+  const executeSearch = async (text: string, semantic: boolean, targetPage = 1) => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setPage(1);
+      loadTrending(1);
       return;
     }
+
+    // Sequence token to discard stale async responses from earlier keystrokes
+    const seq = ++searchSeqRef.current;
+
     try {
-      setLoading(true);
+      if (targetPage === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       let results: Movie[] = [];
       if (semantic) {
-        results = await api.searchSemantic(text.trim());
+        results = await api.searchSemantic(trimmed, 20);
       } else {
-        results = await api.searchMovies(text.trim());
+        results = await api.searchMovies(trimmed, targetPage);
       }
-      setMovies(results || []);
+
+      // If a newer search was dispatched while this request was in-flight, ignore these results
+      if (seq !== searchSeqRef.current) {
+        return;
+      }
+
+      if (semantic) {
+        setHasMore(false);
+      } else {
+        setHasMore(results && results.length >= 10);
+      }
+
+      if (targetPage === 1) {
+        setMovies(results || []);
+      } else {
+        setMovies((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          return [...prev, ...(results || []).filter((m) => !existingIds.has(m.id))];
+        });
+      }
+      setPage(targetPage);
     } catch (e: any) {
+      if (seq !== searchSeqRef.current) return;
       console.error(e);
       showAlert({
         title: 'Lỗi tìm kiếm',
@@ -85,20 +147,54 @@ export default function ExploreScreen() {
         type: 'warning',
       });
     } finally {
-      setLoading(false);
+      if (seq === searchSeqRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
+      }
     }
   };
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
-    executeSearch(text, isSemanticMode);
+    setPage(1);
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    if (!text.trim()) {
+      searchSeqRef.current++;
+      setLoading(false);
+      loadTrending(1);
+      return;
+    }
+
+    // 350ms debounce to prevent firing requests on every keystroke
+    debounceTimerRef.current = setTimeout(() => {
+      executeSearch(text, isSemanticMode, 1);
+    }, 350);
   };
 
   const toggleSearchMode = () => {
     const newMode = !isSemanticMode;
     setIsSemanticMode(newMode);
+    setPage(1);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
     if (searchQuery.trim()) {
-      executeSearch(searchQuery, newMode);
+      executeSearch(searchQuery, newMode, 1);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (loading || loadingMore || !hasMore || isSemanticMode) return;
+    const nextPage = page + 1;
+    if (searchQuery.trim()) {
+      executeSearch(searchQuery, false, nextPage);
+    } else {
+      loadTrending(nextPage);
     }
   };
 
@@ -110,7 +206,7 @@ export default function ExploreScreen() {
     >
       <View style={styles.posterContainer}>
         <Image
-          source={{ uri: item.posterUrl || 'https://via.placeholder.com/300x450?text=No+Poster' }}
+          source={{ uri: item.posterUrl || 'https://placehold.co/300x450/161B22/C9D1D9.png?text=No+Poster' }}
           style={styles.poster}
           resizeMode="cover"
         />
@@ -239,8 +335,18 @@ export default function ExploreScreen() {
           columnWrapperStyle={styles.row}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.4}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentGold} />
+          }
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.loadingMoreContainer}>
+                <ActivityIndicator size="small" color={colors.accentGold} />
+                <Text style={styles.loadingMoreText}>Đang tải thêm phim...</Text>
+              </View>
+            ) : null
           }
           ListEmptyComponent={
             searchQuery.trim() ? (
@@ -459,5 +565,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textMuted,
     marginTop: 4,
+  },
+  loadingMoreContainer: {
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  loadingMoreText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

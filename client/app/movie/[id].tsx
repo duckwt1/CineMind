@@ -298,7 +298,7 @@ export default function MovieDetailScreen() {
             uri:
               movie.backdropUrl ||
               movie.posterUrl ||
-              'https://via.placeholder.com/800x450?text=CineMind+Backdrop',
+              'https://placehold.co/800x450?text=CineMind+Backdrop',
           }}
           style={styles.backdrop}
           resizeMode="cover"
@@ -310,7 +310,7 @@ export default function MovieDetailScreen() {
         {/* Main Info Row with Overlapping Poster */}
         <View style={styles.headerRow}>
           <Image
-            source={{ uri: movie.posterUrl || 'https://via.placeholder.com/150x225?text=Poster' }}
+            source={{ uri: movie.posterUrl || 'https://placehold.co/150x225?text=Poster' }}
             style={styles.poster}
             resizeMode="cover"
           />

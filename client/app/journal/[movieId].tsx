@@ -147,7 +147,7 @@ export default function JournalEditorScreen() {
       {movie && (
         <View style={styles.movieHeader}>
           <Image
-            source={{ uri: movie.posterUrl || 'https://via.placeholder.com/100x150?text=Poster' }}
+            source={{ uri: movie.posterUrl || 'https://placehold.co/100x150?text=Poster' }}
             style={styles.poster}
           />
           <View style={styles.movieDetails}>

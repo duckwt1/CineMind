@@ -40,3 +40,16 @@ if (fs.existsSync(oldPath)) {
 } else {
   console.log('[fix-cloudflare] No dist/assets/node_modules directory found.');
 }
+
+// Ensure Cloudflare Pages routes all SPA requests to index.html
+const indexHtmlPath = path.join(distDir, 'index.html');
+const redirectsPath = path.join(distDir, '_redirects');
+const notFoundHtmlPath = path.join(distDir, '404.html');
+
+fs.writeFileSync(redirectsPath, '/* /index.html 200\n', 'utf8');
+console.log('[fix-cloudflare] Created dist/_redirects for SPA routing.');
+
+if (fs.existsSync(indexHtmlPath)) {
+  fs.copyFileSync(indexHtmlPath, notFoundHtmlPath);
+  console.log('[fix-cloudflare] Created dist/404.html (copy of index.html).');
+}

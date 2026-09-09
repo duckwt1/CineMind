@@ -114,8 +114,8 @@ export const api = {
   },
 
   // Movies
-  searchMovies: async (query: string) => {
-    const res = await apiClient.get<ApiResponse<Movie[]>>('/movies/search', { params: { q: query } });
+  searchMovies: async (query: string, page: number = 1) => {
+    const res = await apiClient.get<ApiResponse<Movie[]>>('/movies/search', { params: { q: query, page } });
     return res.data.data;
   },
 
@@ -126,8 +126,8 @@ export const api = {
     return res.data.data;
   },
 
-  getTrending: async () => {
-    const res = await apiClient.get<ApiResponse<Movie[]>>('/movies/trending');
+  getTrending: async (page: number = 1) => {
+    const res = await apiClient.get<ApiResponse<Movie[]>>('/movies/trending', { params: { page } });
     return res.data.data;
   },
 

@@ -231,7 +231,7 @@ export default function RecommendationsScreen() {
           activeOpacity={0.8}
         >
           <Image
-            source={{ uri: item.movie.posterUrl || 'https://via.placeholder.com/100x150?text=Movie' }}
+            source={{ uri: item.movie.posterUrl || 'https://placehold.co/100x150?text=Movie' }}
             style={styles.poster}
             resizeMode="cover"
           />
@@ -341,7 +341,7 @@ export default function RecommendationsScreen() {
           activeOpacity={0.8}
         >
           <Image
-            source={{ uri: item.movie.posterUrl || 'https://via.placeholder.com/100x150?text=Movie' }}
+            source={{ uri: item.movie.posterUrl || 'https://placehold.co/100x150?text=Movie' }}
             style={styles.poster}
             resizeMode="cover"
           />

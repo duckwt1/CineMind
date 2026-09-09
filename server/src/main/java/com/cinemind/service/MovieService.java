@@ -27,7 +27,11 @@ public class MovieService {
     private final MovieCacheRepository movieCacheRepository;
 
     public List<MovieDto> searchMovies(String query) {
-        return tmdbGateway.searchMovies(query).stream()
+        return searchMovies(query, 1);
+    }
+
+    public List<MovieDto> searchMovies(String query, int page) {
+        return tmdbGateway.searchMovies(query, page).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
@@ -117,13 +121,21 @@ public class MovieService {
     }
 
     public List<MovieDto> getTrending() {
-        return tmdbGateway.getTrending().stream()
+        return getTrending(1);
+    }
+
+    public List<MovieDto> getTrending(int page) {
+        return tmdbGateway.getTrending(page).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
 
     public List<MovieDto> getPopular() {
-        return tmdbGateway.getPopular().stream()
+        return getPopular(1);
+    }
+
+    public List<MovieDto> getPopular(int page) {
+        return tmdbGateway.getPopular(page).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }

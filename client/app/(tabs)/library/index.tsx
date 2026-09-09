@@ -79,7 +79,7 @@ export default function LibraryScreen() {
       activeOpacity={0.8}
     >
       <Image
-        source={{ uri: item.movie.posterUrl || 'https://via.placeholder.com/150x225?text=Poster' }}
+        source={{ uri: item.movie.posterUrl || 'https://placehold.co/150x225?text=Poster' }}
         style={styles.poster}
         resizeMode="cover"
       />

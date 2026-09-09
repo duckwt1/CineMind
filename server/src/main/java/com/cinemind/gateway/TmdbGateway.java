@@ -67,10 +67,14 @@ public class TmdbGateway {
     }
 
     public List<MovieCache> getTrending() {
+        return getTrending(1);
+    }
+
+    public List<MovieCache> getTrending(int page) {
         if (apiKey != null && !apiKey.isBlank()) {
             try {
-                String url = getNormalizedBaseUrl() + "/trending/movie/week?api_key=" + apiKey.trim() + "&language=en-US";
-                log.info("Fetching trending movies from TMDB API: {}", getNormalizedBaseUrl());
+                String url = getNormalizedBaseUrl() + "/trending/movie/week?api_key=" + apiKey.trim() + "&language=en-US&page=" + page;
+                log.info("Fetching trending movies from TMDB API (page {}): {}", page, getNormalizedBaseUrl());
                 String responseBody = webClientBuilder.build()
                         .get()
                         .uri(url)
@@ -84,16 +88,20 @@ public class TmdbGateway {
                     return movies;
                 }
             } catch (Exception e) {
-                log.warn("Failed to fetch trending movies from TMDB (falling back to cache): {}", e.getMessage());
+                log.warn("Failed to fetch trending movies from TMDB (page {}): {}", page, e.getMessage());
             }
         }
         return movieCacheRepository.findAll();
     }
 
     public List<MovieCache> getPopular() {
+        return getPopular(1);
+    }
+
+    public List<MovieCache> getPopular(int page) {
         if (apiKey != null && !apiKey.isBlank()) {
             try {
-                String url = getNormalizedBaseUrl() + "/movie/popular?api_key=" + apiKey.trim() + "&language=en-US";
+                String url = getNormalizedBaseUrl() + "/movie/popular?api_key=" + apiKey.trim() + "&language=en-US&page=" + page;
                 String responseBody = webClientBuilder.build()
                         .get()
                         .uri(url)
@@ -114,11 +122,31 @@ public class TmdbGateway {
     }
 
     public List<MovieCache> searchMovies(String query) {
+        return searchMovies(query, 1);
+    }
+
+    public List<MovieCache> searchMovies(String query, int page) {
         if (apiKey != null && !apiKey.isBlank() && query != null && !query.isBlank()) {
             try {
-                String encodedQuery = URLEncoder.encode(query.trim(), StandardCharsets.UTF_8);
-                String url = getNormalizedBaseUrl() + "/search/movie?api_key=" + apiKey.trim() + "&query=" + encodedQuery + "&include_adult=false&language=en-US";
-                log.info("Searching TMDB for query: {}", query);
+                String trimmedQuery = query.trim();
+                // Check if query contains release year, e.g., "Inception 2010"
+                String queryText = trimmedQuery;
+                String yearParam = "";
+                java.util.regex.Matcher yearMatcher = java.util.regex.Pattern.compile("\\b(19\\d{2}|20\\d{2})\\b").matcher(trimmedQuery);
+                if (yearMatcher.find()) {
+                    String foundYear = yearMatcher.group(1);
+                    yearParam = "&primary_release_year=" + foundYear;
+                    queryText = trimmedQuery.replace(foundYear, "").trim();
+                    if (queryText.isBlank()) queryText = trimmedQuery;
+                }
+
+                String encodedQuery = URLEncoder.encode(queryText, StandardCharsets.UTF_8);
+                String url = getNormalizedBaseUrl() + "/search/movie?api_key=" + apiKey.trim()
+                        + "&query=" + encodedQuery
+                        + "&include_adult=false&language=en-US&page=" + page
+                        + yearParam;
+
+                log.info("Searching TMDB for query: '{}' (page {})", query, page);
                 String responseBody = webClientBuilder.build()
                         .get()
                         .uri(url)
@@ -129,6 +157,48 @@ public class TmdbGateway {
 
                 List<MovieCache> movies = parseAndSaveMovieList(responseBody);
                 if (!movies.isEmpty()) {
+                    // Relevance sorting (IMDb-style):
+                    // 1. Exact title match
+                    // 2. Title starts with query
+                    // 3. Title contains query as substring
+                    // 4. Title contains all query tokens
+                    // 5. TMDB popularity order
+                    String lowerQ = queryText.toLowerCase().trim();
+                    String[] tokens = lowerQ.split("\\s+");
+
+                    movies.sort((m1, m2) -> {
+                        String t1 = m1.getTitle() != null ? m1.getTitle().toLowerCase().trim() : "";
+                        String t2 = m2.getTitle() != null ? m2.getTitle().toLowerCase().trim() : "";
+
+                        // 1. Exact title match
+                        boolean exact1 = t1.equals(lowerQ);
+                        boolean exact2 = t2.equals(lowerQ);
+                        if (exact1 != exact2) return exact1 ? -1 : 1;
+
+                        // 2. Title starts with query
+                        boolean starts1 = t1.startsWith(lowerQ);
+                        boolean starts2 = t2.startsWith(lowerQ);
+                        if (starts1 != starts2) return starts1 ? -1 : 1;
+
+                        // 3. Title contains exact phrase
+                        boolean contains1 = t1.contains(lowerQ);
+                        boolean contains2 = t2.contains(lowerQ);
+                        if (contains1 != contains2) return contains1 ? -1 : 1;
+
+                        // 4. Title contains all tokens
+                        if (tokens.length > 1) {
+                            boolean allTokens1 = true;
+                            boolean allTokens2 = true;
+                            for (String token : tokens) {
+                                if (!t1.contains(token)) allTokens1 = false;
+                                if (!t2.contains(token)) allTokens2 = false;
+                            }
+                            if (allTokens1 != allTokens2) return allTokens1 ? -1 : 1;
+                        }
+
+                        return 0; // maintain TMDB popularity ranking
+                    });
+
                     return movies;
                 }
             } catch (Exception e) {
