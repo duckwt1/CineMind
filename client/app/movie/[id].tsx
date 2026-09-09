@@ -560,11 +560,38 @@ export default function MovieDetailScreen() {
                 </View>
                 <View style={styles.scoreDetails}>
                   <Text style={styles.confidenceText}>
-                    Confidence: <Text style={styles.highlightConfidence}>{preWatch.confidence}</Text>
+                    Độ tin cậy: <Text style={styles.highlightConfidence}>{preWatch.confidence}</Text>
                   </Text>
-                  <Text style={styles.toneText}>Tone: {preWatch.tone}</Text>
+                  <Text style={styles.toneText}>Tông điệu: {preWatch.tone}</Text>
+                  <Text style={styles.toneText}>Nhịp phim: {preWatch.pacing}</Text>
                 </View>
               </View>
+
+              {/* Reasons to Watch */}
+              {preWatch.reasonsToWatch && preWatch.reasonsToWatch.length > 0 && (
+                <View style={styles.reasonsContainer}>
+                  <Text style={styles.reasonsHeader}>✨ Lý do phù hợp với gu của bạn:</Text>
+                  {preWatch.reasonsToWatch.map((r, idx) => (
+                    <View key={idx} style={styles.reasonRow}>
+                      <Ionicons name="checkmark-circle" size={14} color={colors.success} style={{ marginRight: 6, marginTop: 2 }} />
+                      <Text style={styles.reasonText}>{r}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Potential Concerns / Cautions */}
+              {preWatch.potentialConcerns && preWatch.potentialConcerns.length > 0 && (
+                <View style={[styles.reasonsContainer, { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8, marginTop: 8 }]}>
+                  <Text style={[styles.reasonsHeader, { color: colors.warning }]}>⚠️ Lưu ý trước khi xem:</Text>
+                  {preWatch.potentialConcerns.map((c, idx) => (
+                    <View key={idx} style={styles.reasonRow}>
+                      <Ionicons name="alert-circle" size={14} color={colors.warning} style={{ marginRight: 6, marginTop: 2 }} />
+                      <Text style={[styles.reasonText, { color: colors.textSecondary }]}>{c}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
           ) : (
             <View style={styles.aiNotice}>
@@ -1060,6 +1087,26 @@ const styles = StyleSheet.create({
   toneText: {
     color: colors.textSecondary,
     fontSize: 12,
+  },
+  reasonsContainer: {
+    marginTop: 12,
+  },
+  reasonsHeader: {
+    color: colors.accentGold,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  reasonRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  reasonText: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 12,
+    lineHeight: 18,
   },
   aiNotice: {
     paddingVertical: 8,

@@ -203,6 +203,16 @@ export const api = {
     return res.data.data;
   },
 
+  getPersonalizedRecommendations: async (page: number = 1) => {
+    const res = await apiClient.get<ApiResponse<{
+      movie: Movie;
+      matchScore: number;
+      matchedGenres: string[];
+      aiPitch: string;
+    }[]>>('/ai/recommendations/for-you', { params: { page } });
+    return res.data.data;
+  },
+
   // Social & Recommendations
   getRecommendationsInbox: async (status?: string) => {
     const res = await apiClient.get<ApiResponse<MovieRecommendation[]>>('/recommendations/inbox', {

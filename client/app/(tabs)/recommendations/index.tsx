@@ -21,10 +21,17 @@ import { colors } from '../../../src/theme/colors';
 
 export default function RecommendationsScreen() {
   const { showAlert } = useAlert();
-  const [activeTab, setActiveTab] = useState<'inbox' | 'sent'>('inbox');
+  const [activeTab, setActiveTab] = useState<'for_you' | 'inbox' | 'sent'>('for_you');
   const [inboxRecommendations, setInboxRecommendations] = useState<MovieRecommendation[]>([]);
   const [sentRecommendations, setSentRecommendations] = useState<MovieRecommendation[]>([]);
+  const [forYouRecs, setForYouRecs] = useState<{
+    movie: Movie;
+    matchScore: number;
+    matchedGenres: string[];
+    aiPitch: string;
+  }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingForYou, setLoadingForYou] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -45,12 +52,14 @@ export default function RecommendationsScreen() {
     try {
       if (!silent) setLoading(true);
       setHasError(false);
-      const [inbox, sent] = await Promise.all([
+      const [inbox, sent, forYou] = await Promise.all([
         api.getRecommendationsInbox().catch(() => []),
         api.getSentRecommendations().catch(() => []),
+        api.getPersonalizedRecommendations(1).catch(() => []),
       ]);
       setInboxRecommendations(inbox || []);
       setSentRecommendations(sent || []);
+      setForYouRecs(forYou || []);
     } catch (e) {
       console.error(e);
       if (!silent) setHasError(true);
@@ -373,7 +382,107 @@ export default function RecommendationsScreen() {
     );
   };
 
-  const currentList = activeTab === 'inbox' ? inboxRecommendations : sentRecommendations;
+  const renderForYouItem = ({
+    item,
+  }: {
+    item: {
+      movie: Movie;
+      matchScore: number;
+      matchedGenres: string[];
+      aiPitch: string;
+    };
+  }) => {
+    return (
+      <View style={styles.card}>
+        <View style={styles.header}>
+          <View style={styles.senderRow}>
+            <View style={[styles.senderAvatar, { borderColor: colors.aiPurple }]}>
+              <Ionicons name="sparkles" size={16} color={colors.aiPurple} />
+            </View>
+            <View>
+              <Text style={styles.senderName}>CineMind AI Discovery</Text>
+              <Text style={styles.dateText}>Khám phá dựa trên Gu cá nhân của bạn</Text>
+            </View>
+          </View>
+          <View style={styles.aiMatchBadge}>
+            <Ionicons name="flame" size={12} color={colors.textInverse} style={{ marginRight: 3 }} />
+            <Text style={styles.aiMatchBadgeText}>{item.matchScore}% Phù hợp</Text>
+          </View>
+        </View>
+
+        {/* AI Pitch Note */}
+        <View style={styles.aiPitchCard}>
+          <Ionicons name="bulb-outline" size={14} color={colors.accentGold} style={{ marginRight: 6, marginTop: 1 }} />
+          <Text style={styles.aiPitchText}>{item.aiPitch}</Text>
+        </View>
+
+        {/* Movie Overview Card */}
+        <TouchableOpacity
+          style={styles.movieRow}
+          onPress={() => router.push({ pathname: '/movie/[id]', params: { id: item.movie.id } })}
+          activeOpacity={0.8}
+        >
+          <Image
+            source={{
+              uri:
+                item.movie.posterUrl ||
+                'https://placehold.co/300x450/161B22/C9D1D9.png?text=No+Poster',
+            }}
+            style={styles.moviePoster}
+            resizeMode="cover"
+          />
+          <View style={styles.movieDetails}>
+            <Text style={styles.movieTitle} numberOfLines={2}>
+              {item.movie.title}
+            </Text>
+            <Text style={styles.movieMeta}>
+              {item.movie.releaseYear} • {item.movie.genres?.slice(0, 3).join(', ')}
+            </Text>
+            {item.movie.director ? (
+              <Text style={styles.directorText} numberOfLines={1}>
+                Dir. {item.movie.director}
+              </Text>
+            ) : null}
+            <View style={styles.aiHintPill}>
+              <Ionicons name="sparkles" size={12} color={colors.aiPurple} style={{ marginRight: 4 }} />
+              <Text style={styles.aiHintText}>Bấm xem phân tích chi tiết & Pre-Watch</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
+
+        {/* Actions */}
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={styles.primaryActionBtn}
+            onPress={async () => {
+              try {
+                await api.saveLibraryEntry({
+                  movieId: item.movie.id,
+                  status: 'WANT_TO_WATCH',
+                });
+                showAlert({
+                  title: 'Đã lưu vào danh sách xem!',
+                  message: `"${item.movie.title}" đã được thêm vào Watchlist của bạn.`,
+                  type: 'success',
+                });
+              } catch (err: any) {
+                showAlert({
+                  title: 'Lỗi',
+                  message: 'Không thể thêm vào thư viện.',
+                  type: 'error',
+                });
+              }
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="bookmark" size={14} color={colors.textInverse} />
+            <Text style={styles.primaryActionBtnText}>Thêm vào Watchlist</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.screenWrapper}>
@@ -381,24 +490,39 @@ export default function RecommendationsScreen() {
       <AppHeader
         title="Gợi Ý & Bạn Bè"
         icon="sparkles"
-        subtitle={`${inboxRecommendations.length} gợi ý nhận • ${sentRecommendations.length} đã gửi`}
+        subtitle={`${forYouRecs.length} AI gợi ý • ${inboxRecommendations.length} từ bạn bè`}
       />
 
       <View style={styles.container}>
         {/* Segmented Tab Switcher */}
         <View style={styles.tabSwitcher}>
           <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'for_you' && styles.tabBtnActive]}
+            onPress={() => setActiveTab('for_you')}
+          >
+            <Ionicons
+              name="sparkles"
+              size={13}
+              color={activeTab === 'for_you' ? colors.aiPurple : colors.textSecondary}
+              style={{ marginRight: 4 }}
+            />
+            <Text style={[styles.tabBtnText, activeTab === 'for_you' && styles.tabBtnTextActiveAi]}>
+              ✨ Cho bạn ({forYouRecs.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={[styles.tabBtn, activeTab === 'inbox' && styles.tabBtnActive]}
             onPress={() => setActiveTab('inbox')}
           >
             <Ionicons
               name="mail-outline"
-              size={14}
+              size={13}
               color={activeTab === 'inbox' ? colors.accentGold : colors.textSecondary}
-              style={{ marginRight: 6 }}
+              style={{ marginRight: 4 }}
             />
             <Text style={[styles.tabBtnText, activeTab === 'inbox' && styles.tabBtnTextActive]}>
-              Hộp thư đến ({inboxRecommendations.length})
+              Nhận ({inboxRecommendations.length})
             </Text>
           </TouchableOpacity>
 
@@ -408,9 +532,9 @@ export default function RecommendationsScreen() {
           >
             <Ionicons
               name="paper-plane-outline"
-              size={14}
+              size={13}
               color={activeTab === 'sent' ? colors.accentGold : colors.textSecondary}
-              style={{ marginRight: 6 }}
+              style={{ marginRight: 4 }}
             />
             <Text style={[styles.tabBtnText, activeTab === 'sent' && styles.tabBtnTextActive]}>
               Đã gửi ({sentRecommendations.length})
@@ -426,9 +550,21 @@ export default function RecommendationsScreen() {
           </View>
         ) : (
           <FlatList
-            data={currentList}
-            keyExtractor={(item) => item.id}
-            renderItem={activeTab === 'inbox' ? renderInboxItem : renderSentItem}
+            data={
+              activeTab === 'for_you'
+                ? forYouRecs
+                : activeTab === 'inbox'
+                ? inboxRecommendations
+                : sentRecommendations
+            }
+            keyExtractor={(item: any) => item.id || item.movie?.id || String(Math.random())}
+            renderItem={
+              activeTab === 'for_you'
+                ? (renderForYouItem as any)
+                : activeTab === 'inbox'
+                ? renderInboxItem
+                : renderSentItem
+            }
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
             refreshControl={
@@ -438,7 +574,7 @@ export default function RecommendationsScreen() {
               hasError ? (
                 <ErrorState
                   title="Mất kết nối máy chủ"
-                  message="Không thể tải hòm thư gợi ý phim từ bạn bè. Vui lòng kiểm tra lại mạng hoặc thử lại."
+                  message="Không thể tải danh sách gợi ý phim. Vui lòng kiểm tra lại mạng hoặc thử lại."
                   onRetry={onRefresh}
                   retrying={refreshing}
                   type="offline"
@@ -446,15 +582,27 @@ export default function RecommendationsScreen() {
               ) : (
                 <View style={styles.empty}>
                   <Ionicons
-                    name={activeTab === 'inbox' ? 'mail-unread-outline' : 'paper-plane-outline'}
+                    name={
+                      activeTab === 'for_you'
+                        ? 'sparkles-outline'
+                        : activeTab === 'inbox'
+                        ? 'mail-unread-outline'
+                        : 'paper-plane-outline'
+                    }
                     size={48}
                     color={colors.borderLight}
                   />
                   <Text style={styles.emptyText}>
-                    {activeTab === 'inbox' ? 'Chưa có đề xuất phim nào' : 'Chưa gửi gợi ý nào'}
+                    {activeTab === 'for_you'
+                      ? 'Chưa đủ dữ liệu gu xem phim'
+                      : activeTab === 'inbox'
+                      ? 'Chưa có đề xuất phim nào'
+                      : 'Chưa gửi gợi ý nào'}
                   </Text>
                   <Text style={styles.emptySubtext}>
-                    {activeTab === 'inbox'
+                    {activeTab === 'for_you'
+                      ? 'Hãy chấm điểm hoặc lưu một vài bộ phim yêu thích vào Thư viện để AI tổng hợp gu xem phim của bạn!'
+                      : activeTab === 'inbox'
                       ? 'Kết nối cùng bạn bè yêu điện ảnh để trao đổi gợi ý phim hay'
                       : 'Mở một bộ phim yêu thích và bấm "Giới thiệu bạn bè" để bắt đầu chia sẻ!'}
                   </Text>
@@ -599,6 +747,40 @@ const styles = StyleSheet.create({
   tabBtnTextActive: {
     color: colors.accentGold,
     fontWeight: '700',
+  },
+  tabBtnTextActiveAi: {
+    color: colors.aiPurple,
+    fontWeight: '700',
+  },
+  aiMatchBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.aiPurple,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  aiMatchBadgeText: {
+    color: colors.textInverse,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  aiPitchCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(163, 113, 247, 0.1)',
+    borderLeftWidth: 3,
+    borderLeftColor: colors.aiPurple,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+  aiPitchText: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 12,
+    lineHeight: 18,
+    fontStyle: 'italic',
   },
   list: {
     paddingBottom: 90,

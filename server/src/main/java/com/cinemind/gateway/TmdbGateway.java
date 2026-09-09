@@ -121,6 +121,46 @@ public class TmdbGateway {
         return movieCacheRepository.findAll();
     }
 
+    public List<MovieCache> discoverMoviesByGenres(List<String> genreNames, int page) {
+        if (apiKey != null && !apiKey.isBlank()) {
+            try {
+                List<Integer> genreIds = new ArrayList<>();
+                if (genreNames != null) {
+                    for (String gName : genreNames) {
+                        for (Map.Entry<Integer, String> entry : GENRE_MAP.entrySet()) {
+                            if (entry.getValue().equalsIgnoreCase(gName.trim())) {
+                                genreIds.add(entry.getKey());
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                String genreParam = genreIds.isEmpty() ? "" : "&with_genres=" + String.join(",", genreIds.stream().map(String::valueOf).toList());
+                String url = getNormalizedBaseUrl() + "/discover/movie?api_key=" + apiKey.trim()
+                        + "&language=en-US&sort_by=popularity.desc&vote_count.gte=150&page=" + page
+                        + genreParam;
+
+                log.info("Discovering movies on TMDB for genres {}: {}", genreNames, url);
+                String responseBody = webClientBuilder.build()
+                        .get()
+                        .uri(url)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(Duration.ofSeconds(10))
+                        .block();
+
+                List<MovieCache> movies = parseAndSaveMovieList(responseBody);
+                if (!movies.isEmpty()) {
+                    return movies;
+                }
+            } catch (Exception e) {
+                log.warn("Failed to discover movies from TMDB: {}", e.getMessage());
+            }
+        }
+        return getTrending(page);
+    }
+
     public List<MovieCache> searchMovies(String query) {
         return searchMovies(query, 1);
     }

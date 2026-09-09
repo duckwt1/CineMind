@@ -27,10 +27,22 @@ public class AiController {
     @GetMapping("/movies/{movieId}/pre-watch")
     public ResponseEntity<ApiResponse<PreWatchResponse>> getPreWatchAnalysis(
             @PathVariable("movieId") UUID movieId,
-            @RequestParam(value = "spoilers", defaultValue = "false") boolean spoilers
+            @RequestParam(value = "spoilers", defaultValue = "false") boolean spoilers,
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
-        PreWatchResponse response = aiService.getPreWatchAnalysis(movieId, spoilers);
+        UUID userId = principal != null ? principal.getId() : null;
+        PreWatchResponse response = aiService.getPreWatchAnalysis(movieId, spoilers, userId);
         return ResponseEntity.ok(ApiResponse.of(response));
+    }
+
+    @GetMapping("/recommendations/for-you")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getPersonalizedRecommendations(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(value = "page", defaultValue = "1") int page
+    ) {
+        UUID userId = principal != null ? principal.getId() : null;
+        List<Map<String, Object>> recs = aiService.getPersonalizedRecommendations(userId, page);
+        return ResponseEntity.ok(ApiResponse.of(recs));
     }
 
     @PostMapping("/movies/{movieId}/qa")

@@ -27,13 +27,87 @@ public class AiService {
     private final MovieService movieService;
 
     public PreWatchResponse getPreWatchAnalysis(UUID movieId, boolean spoilersAllowed) {
+        return getPreWatchAnalysis(movieId, spoilersAllowed, null);
+    }
+
+    public PreWatchResponse getPreWatchAnalysis(UUID movieId, boolean spoilersAllowed, UUID userId) {
         MovieCache movie = tmdbGateway.getMovieDetails(movieId.toString())
                 .orElseThrow(() -> new ResourceNotFoundException("Movie not found"));
 
         // Pre-embed movie asynchronously if not already embedded
         movieService.ensureMovieEmbedding(movie);
 
-        return geminiGateway.generatePreWatchAnalysis(movie, spoilersAllowed);
+        String tasteContext = null;
+        if (userId != null) {
+            List<LibraryEntry> library = libraryEntryRepository.findByUserId(userId);
+            if (!library.isEmpty()) {
+                Map<String, Integer> genreWeights = extractGenreWeights(library);
+                List<String> topFavTitles = library.stream()
+                        .filter(e -> (e.isFavorite() || (e.getRating() != null && e.getRating().doubleValue() >= 8.0)))
+                        .map(e -> e.getMovie() != null ? e.getMovie().getTitle() : null)
+                        .filter(Objects::nonNull)
+                        .limit(5)
+                        .toList();
+
+                tasteContext = "User favorite films: " + String.join(", ", topFavTitles)
+                        + "\nUser top genres: " + genreWeights.entrySet().stream()
+                        .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
+                        .limit(4)
+                        .map(e -> e.getKey() + " (weight: " + e.getValue() + ")")
+                        .toList();
+            }
+        }
+
+        return geminiGateway.generatePreWatchAnalysis(movie, spoilersAllowed, tasteContext);
+    }
+
+    public List<Map<String, Object>> getPersonalizedRecommendations(UUID userId, int page) {
+        List<LibraryEntry> library = libraryEntryRepository.findByUserId(userId);
+        Set<String> alreadyInLibraryIds = new HashSet<>();
+        for (LibraryEntry entry : library) {
+            if (entry.getMovie() != null) {
+                if (entry.getMovie().getId() != null) alreadyInLibraryIds.add(entry.getMovie().getId().toString());
+                if (entry.getMovie().getExternalId() != null) alreadyInLibraryIds.add(entry.getMovie().getExternalId());
+            }
+        }
+
+        Map<String, Integer> genreWeights = extractGenreWeights(library);
+        List<String> topGenres = genreWeights.entrySet().stream()
+                .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
+                .limit(3)
+                .map(Map.Entry::getKey)
+                .toList();
+
+        if (topGenres.isEmpty()) {
+            topGenres = List.of("Sci-Fi", "Drama", "Thriller");
+        }
+
+        // 1. Fetch discovery candidates from TMDB
+        List<MovieCache> candidates = tmdbGateway.discoverMoviesByGenres(topGenres, page);
+
+        List<Map<String, Object>> recs = new ArrayList<>();
+        int rank = 0;
+        for (MovieCache c : candidates) {
+            if (alreadyInLibraryIds.contains(c.getId() != null ? c.getId().toString() : "")
+                    || (c.getExternalId() != null && alreadyInLibraryIds.contains(c.getExternalId()))) {
+                continue;
+            }
+
+            MovieDto dto = movieService.mapToDto(c);
+            int score = Math.max(76, 98 - (rank * 2)); // Dynamic match score gradient
+            dto.setSimilarityScore(score);
+
+            Map<String, Object> item = new HashMap<>();
+            item.put("movie", dto);
+            item.put("matchScore", score);
+            item.put("matchedGenres", c.getGenres() != null ? c.getGenres().stream().filter(topGenres::contains).toList() : List.of());
+            item.put("aiPitch", "Được đề xuất dựa trên sở thích của bạn với thể loại " + String.join(", ", topGenres) + ".");
+            recs.add(item);
+            rank++;
+            if (recs.size() >= 12) break;
+        }
+
+        return recs;
     }
 
     public String askQuestion(UUID movieId, String query, boolean spoilersAllowed) {

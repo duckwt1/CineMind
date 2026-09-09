@@ -29,11 +29,16 @@ public class GeminiGateway {
     private String baseUrl;
 
     public PreWatchResponse generatePreWatchAnalysis(MovieCache movie, boolean spoilersAllowed) {
-        log.info("Generating pre-watch analysis for '{}' (spoilersAllowed: {})", movie.getTitle(), spoilersAllowed);
+        return generatePreWatchAnalysis(movie, spoilersAllowed, null);
+    }
+
+    public PreWatchResponse generatePreWatchAnalysis(MovieCache movie, boolean spoilersAllowed, String viewerTasteContext) {
+        log.info("Generating pre-watch analysis for '{}' (spoilersAllowed: {}, personalized: {})",
+                movie.getTitle(), spoilersAllowed, viewerTasteContext != null);
 
         if (apiKey != null && !apiKey.isBlank() && !apiKey.contains("your_gemini")) {
             try {
-                String prompt = buildPreWatchPrompt(movie, spoilersAllowed);
+                String prompt = buildPreWatchPrompt(movie, spoilersAllowed, viewerTasteContext);
                 String geminiResponse = callGeminiApi(prompt);
                 PreWatchResponse parsed = parsePreWatchResponse(geminiResponse, movie.getId(), spoilersAllowed);
                 if (parsed != null) {
@@ -171,18 +176,23 @@ public class GeminiGateway {
         return null;
     }
 
-    private String buildPreWatchPrompt(MovieCache movie, boolean spoilersAllowed) {
+    private String buildPreWatchPrompt(MovieCache movie, boolean spoilersAllowed, String viewerTasteContext) {
+        String tasteSection = (viewerTasteContext != null && !viewerTasteContext.isBlank())
+                ? "\nVIEWER TASTE PROFILE:\n" + viewerTasteContext + "\nEvaluate how well this movie matches this specific viewer's taste. Tailor the matchScore (0-100) and reasonsToWatch to their preferences.\n"
+                : "";
+
         return "You are CineMind AI, an elite film analyst. Analyze this movie for a viewer considering watching it:\n" +
                 "Title: " + movie.getTitle() + " (" + (movie.getReleaseYear() != null ? movie.getReleaseYear() : "") + ")\n" +
                 "Director: " + (movie.getDirector() != null ? movie.getDirector() : "Unknown") + "\n" +
                 "Genres: " + (movie.getGenres() != null ? String.join(", ", movie.getGenres()) : "") + "\n" +
-                "Synopsis: " + movie.getSynopsis() + "\n\n" +
+                "Synopsis: " + movie.getSynopsis() + "\n" +
+                tasteSection + "\n" +
                 "STRICT SPOILER POLICY: " + (spoilersAllowed ? "SPOILERS ALLOWED. You may discuss plot twists and climax." : "STRICTLY SPOILER-FREE. NEVER reveal any ending, plot twists, character deaths, or secret identities.") + "\n\n" +
                 "Respond ONLY with valid JSON following this exact structure without markdown backticks:\n" +
                 "{\n" +
                 "  \"matchScore\": 89,\n" +
                 "  \"confidence\": \"HIGH\",\n" +
-                "  \"reasonsToWatch\": [\"Compelling reason 1\", \"Compelling reason 2\", \"Compelling reason 3\"],\n" +
+                "  \"reasonsToWatch\": [\"Compelling reason 1 tailored to viewer\", \"Compelling reason 2\", \"Compelling reason 3\"],\n" +
                 "  \"potentialConcerns\": [\"Honest caution 1\", \"Honest caution 2\"],\n" +
                 "  \"tone\": \"Atmospheric, Tense, Thought-provoking\",\n" +
                 "  \"pacing\": \"Deliberate build-up with intense crescendo\",\n" +
