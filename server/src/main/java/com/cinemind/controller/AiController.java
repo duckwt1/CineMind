@@ -26,7 +26,7 @@ public class AiController {
 
     @GetMapping("/movies/{movieId}/pre-watch")
     public ResponseEntity<ApiResponse<PreWatchResponse>> getPreWatchAnalysis(
-            @PathVariable("movieId") UUID movieId,
+            @PathVariable("movieId") String movieId,
             @RequestParam(value = "spoilers", defaultValue = "false") boolean spoilers,
             @AuthenticationPrincipal UserPrincipal principal
     ) {
@@ -47,7 +47,7 @@ public class AiController {
 
     @PostMapping("/movies/{movieId}/qa")
     public ResponseEntity<ApiResponse<Map<String, Object>>> askMovieQuestion(
-            @PathVariable("movieId") UUID movieId,
+            @PathVariable("movieId") String movieId,
             @Valid @RequestBody QaRequest request
     ) {
         String answer = aiService.askQuestion(movieId, request.getQuery(), request.isSpoilersAllowed());

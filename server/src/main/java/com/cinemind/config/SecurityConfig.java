@@ -37,11 +37,17 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/health/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/movies/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/ai/movies/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/ai/movies/*/qa").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/ai/recommendations/mood").permitAll()
                         .requestMatchers("/error").permitAll()
                         // In case requests bypass context-path or direct match
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/health/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/movies/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/ai/movies/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/ai/movies/*/qa").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/ai/recommendations/mood").permitAll()
                         // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )

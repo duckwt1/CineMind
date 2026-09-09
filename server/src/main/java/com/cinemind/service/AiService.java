@@ -26,12 +26,12 @@ public class AiService {
     private final LibraryEntryRepository libraryEntryRepository;
     private final MovieService movieService;
 
-    public PreWatchResponse getPreWatchAnalysis(UUID movieId, boolean spoilersAllowed) {
+    public PreWatchResponse getPreWatchAnalysis(String movieId, boolean spoilersAllowed) {
         return getPreWatchAnalysis(movieId, spoilersAllowed, null);
     }
 
-    public PreWatchResponse getPreWatchAnalysis(UUID movieId, boolean spoilersAllowed, UUID userId) {
-        MovieCache movie = tmdbGateway.getMovieDetails(movieId.toString())
+    public PreWatchResponse getPreWatchAnalysis(String movieId, boolean spoilersAllowed, UUID userId) {
+        MovieCache movie = tmdbGateway.getMovieDetails(movieId)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie not found"));
 
         // Pre-embed movie asynchronously if not already embedded
@@ -110,8 +110,8 @@ public class AiService {
         return recs;
     }
 
-    public String askQuestion(UUID movieId, String query, boolean spoilersAllowed) {
-        MovieCache movie = tmdbGateway.getMovieDetails(movieId.toString())
+    public String askQuestion(String movieId, String query, boolean spoilersAllowed) {
+        MovieCache movie = tmdbGateway.getMovieDetails(movieId)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie not found"));
 
         return geminiGateway.answerMovieQuestion(movie, query, spoilersAllowed);
@@ -125,7 +125,7 @@ public class AiService {
             Map<String, Object> rec = new HashMap<>();
             rec.put("movie", movie);
             rec.put("matchScore", 92);
-            rec.put("aiPitch", "Matches your mood for '" + moodPrompt + "' with deliberate atmospheric tension and strong themes.");
+            rec.put("aiPitch", "Rất phù hợp với tâm trạng '" + moodPrompt + "' của bạn với bầu không khí điện ảnh lôi cuốn và cốt truyện hấp dẫn.");
             recommendations.add(rec);
             if (recommendations.size() >= 4) break;
         }

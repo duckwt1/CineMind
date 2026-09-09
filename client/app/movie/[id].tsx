@@ -321,7 +321,7 @@ export default function MovieDetailScreen() {
               <Text style={styles.submetaText}>{movie.releaseYear}</Text>
               <Text style={styles.bullet}>•</Text>
               <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
-              <Text style={styles.submetaText}>{movie.runtimeMinutes} min</Text>
+              <Text style={styles.submetaText}>{movie.runtimeMinutes} phút</Text>
             </View>
 
             {/* Genre tags */}
@@ -336,7 +336,7 @@ export default function MovieDetailScreen() {
             {movie.director && (
               <View style={styles.directorRow}>
                 <Ionicons name="videocam-outline" size={13} color={colors.accentGold} />
-                <Text style={styles.directorText}>Dir. {movie.director}</Text>
+                <Text style={styles.directorText}>Đạo diễn: {movie.director}</Text>
               </View>
             )}
           </View>
@@ -348,10 +348,10 @@ export default function MovieDetailScreen() {
         <View style={styles.libraryCard}>
           <View style={styles.libraryCardHeader}>
             <Ionicons name="bookmark" size={18} color={colors.accentGold} />
-            <Text style={styles.libraryCardTitle}>Personal Journal & Library</Text>
+            <Text style={styles.libraryCardTitle}>Nhật ký & Thư viện cá nhân</Text>
             {libraryEntry && (
               <View style={styles.inLibraryBadge}>
-                <Text style={styles.inLibraryBadgeText}>In Library</Text>
+                <Text style={styles.inLibraryBadgeText}>Đã lưu</Text>
               </View>
             )}
           </View>
@@ -363,7 +363,7 @@ export default function MovieDetailScreen() {
           )}
 
           {/* Status Selection Buttons */}
-          <Text style={styles.sublabel}>Select Viewing Status:</Text>
+          <Text style={styles.sublabel}>Chọn trạng thái xem:</Text>
           <View style={styles.statusGrid}>
             {STATUS_OPTIONS.map((opt) => {
               const isActive = selectedStatus === opt.value;
@@ -390,7 +390,7 @@ export default function MovieDetailScreen() {
           {/* Rating selector if status is WATCHED */}
           {selectedStatus === 'WATCHED' && (
             <View style={styles.ratingSection}>
-              <Text style={styles.sublabel}>Your Rating: {rating.toFixed(1)} / 10.0</Text>
+              <Text style={styles.sublabel}>Đánh giá của bạn: {rating.toFixed(1)} / 10.0</Text>
               <View style={styles.ratingStarsRow}>
                 {[5.0, 6.0, 7.0, 8.0, 9.0, 10.0].map((score) => (
                   <TouchableOpacity
@@ -500,7 +500,7 @@ export default function MovieDetailScreen() {
 
         {/* Synopsis Section */}
         <View style={styles.sectionBlock}>
-          <Text style={styles.sectionHeader}>Overview</Text>
+          <Text style={styles.sectionHeader}>Tổng quan nội dung</Text>
           <Text style={styles.synopsis}>{movie.synopsis}</Text>
         </View>
 
@@ -512,7 +512,7 @@ export default function MovieDetailScreen() {
                 <Ionicons name="sparkles" size={16} color={colors.aiPurple} />
               </View>
               <View>
-                <Text style={styles.aiTitle}>AI Pre-Watch Analysis</Text>
+                <Text style={styles.aiTitle}>Phân tích trước khi xem (AI Pre-Watch)</Text>
                 <View style={styles.spoilerStatusRow}>
                   <Ionicons
                     name={spoilersEnabled ? 'warning' : 'shield-checkmark'}
@@ -526,7 +526,7 @@ export default function MovieDetailScreen() {
                       { color: spoilersEnabled ? colors.danger : colors.success },
                     ]}
                   >
-                    {spoilersEnabled ? 'Spoiler Mode Active' : 'Spoiler-Free Shield Active'}
+                    {spoilersEnabled ? 'Chế độ Spoilers: ĐANG BẬT' : 'Khiên chống Spoilers: BẢO VỆ AN TOÀN'}
                   </Text>
                 </View>
               </View>
@@ -541,7 +541,7 @@ export default function MovieDetailScreen() {
               activeOpacity={0.8}
             >
               <Text style={styles.spoilerButtonText}>
-                {spoilersEnabled ? 'Mask Spoilers' : 'Override'}
+                {spoilersEnabled ? 'Ẩn Spoilers' : 'Mở Spoilers'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -549,14 +549,14 @@ export default function MovieDetailScreen() {
           {aiLoading ? (
             <View style={styles.aiLoadingBox}>
               <ActivityIndicator size="small" color={colors.aiPurple} />
-              <Text style={styles.aiLoadingText}>Synthesizing AI analysis...</Text>
+              <Text style={styles.aiLoadingText}>AI đang phân tích tác phẩm...</Text>
             </View>
           ) : preWatch ? (
             <View style={styles.aiBody}>
               <View style={styles.scoreContainer}>
                 <View style={styles.scoreCircle}>
                   <Text style={styles.scoreNumber}>{preWatch.matchScore}%</Text>
-                  <Text style={styles.scoreLabel}>Taste Match</Text>
+                  <Text style={styles.scoreLabel}>Độ phù hợp</Text>
                 </View>
                 <View style={styles.scoreDetails}>
                   <Text style={styles.confidenceText}>
@@ -564,6 +564,9 @@ export default function MovieDetailScreen() {
                   </Text>
                   <Text style={styles.toneText}>Tông điệu: {preWatch.tone}</Text>
                   <Text style={styles.toneText}>Nhịp phim: {preWatch.pacing}</Text>
+                  {preWatch.recommendedSetting && (
+                    <Text style={styles.toneText}>Gợi ý xem: {preWatch.recommendedSetting}</Text>
+                  )}
                 </View>
               </View>
 
@@ -596,7 +599,7 @@ export default function MovieDetailScreen() {
           ) : (
             <View style={styles.aiNotice}>
               <Text style={styles.aiNoticeText}>
-                Pre-watch insights will automatically generate once taste profiles are populated.
+                Thông tin phân tích trước khi xem đang được CineMind AI tạo lập...
               </Text>
             </View>
           )}
@@ -605,12 +608,12 @@ export default function MovieDetailScreen() {
           <View style={styles.qaBox}>
             <View style={styles.qaHeaderRow}>
               <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.accentGold} style={{ marginRight: 6 }} />
-              <Text style={styles.qaTitle}>Ask AI about this film</Text>
+              <Text style={styles.qaTitle}>Hỏi CineMind AI về phim này</Text>
             </View>
             <View style={styles.qaInputRow}>
               <TextInput
                 style={styles.qaInput}
-                placeholder="Is it scary? How is the pacing? Any jump scares?"
+                placeholder="Phim có sợ không? Tiết tấu thế nào? Có đáng xem không?"
                 placeholderTextColor={colors.textMuted}
                 value={question}
                 onChangeText={setQuestion}
@@ -632,7 +635,7 @@ export default function MovieDetailScreen() {
               <View style={styles.answerBox}>
                 <View style={styles.answerHeader}>
                   <Ionicons name="sparkles" size={14} color={colors.aiPurple} style={{ marginRight: 4 }} />
-                  <Text style={styles.answerHeaderTitle}>CineMind AI Answer</Text>
+                  <Text style={styles.answerHeaderTitle}>Phản hồi từ CineMind AI</Text>
                 </View>
                 <Text style={styles.answerText}>{answer}</Text>
               </View>
